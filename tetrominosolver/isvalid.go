@@ -1,51 +1,58 @@
 package tetrominosolver
 
-// Checks if a list of Tetromino shapes is valid.
-// Each Tetromino is represented by a 2D slice of strings.
-// The function returns true if all Tetrominos are valid, otherwise false.
-func IsValid(tetrominos [][]string) bool {
-	for _, tetromino := range tetrominos {
-		connections := 0 // Count of valid connections between '#' characters
-		hashCount := 0   // Count of '#' characters in the Tetromino
+// Checks if the given Tetrominos are valid according to the game’s rules.
+// Rules:
+// Contains `#` and `.` only.
+// Each `#` char must be connected to at least one other `#` char (horizontally or vertically; not diagonally).
+// Tetromino must have exactly 4 `#` chars.
+// Total number of connections between `#` chars must be at least 6.
+// The function returns `true` if all Tetrominos are valid, and `false` otherwise.
 
-		for rowIndex, row := range tetromino {
-			for colIndex, char := range row {
-				adjacentHashes := 0 // Count of connections for the current '#' character
+func IsValid(Tetrominos [][]string) bool {
+	for _, Tetromino := range Tetrominos {
+		ConnectionCount := 0
+		HashCount := 0
+
+		// Iterate over each line (row) of the Tetromino.
+		for rowIndex, line := range Tetromino {
+			for colIndex, char := range line {
+				CurrentHashConnectionCount := 0
 
 				if char != '#' && char != '.' {
 					return false
 				} else if char == '#' {
-					hashCount++
+					HashCount++
 
-					// Check for adjacent '#' characters in all four directions
-					if rowIndex > 0 && tetromino[rowIndex-1][colIndex] == '#' {
-						adjacentHashes++
-					}
-					if rowIndex < len(tetromino)-1 && tetromino[rowIndex+1][colIndex] == '#' {
-						adjacentHashes++
-					}
-					if colIndex > 0 && tetromino[rowIndex][colIndex-1] == '#' {
-						adjacentHashes++
-					}
-					if colIndex < len(row)-1 && tetromino[rowIndex][colIndex+1] == '#' {
-						adjacentHashes++
+					// Check if the `#` has a neighboring `#`
+					if rowIndex > 0 && Tetromino[rowIndex-1][colIndex] == '#' { // above it.
+						CurrentHashConnectionCount++
 					}
 
-					// If no connections found for a '#', it's an isolated block
-					if adjacentHashes == 0 {
+					if rowIndex < len(Tetromino)-1 && Tetromino[rowIndex+1][colIndex] == '#' { // below it.
+						CurrentHashConnectionCount++
+					}
+
+					if colIndex > 0 && Tetromino[rowIndex][colIndex-1] == '#' { // to the left of it.
+						CurrentHashConnectionCount++
+					}
+
+					if colIndex < len(line)-1 && Tetromino[rowIndex][colIndex+1] == '#' { // to the right of it.
+						CurrentHashConnectionCount++
+					}
+
+					if CurrentHashConnectionCount == 0 { // Invalid Tetromino if no connections for the '#'
 						return false
 					} else {
-						connections += adjacentHashes // Add connections to total count
+						ConnectionCount += CurrentHashConnectionCount // Add up the total number of connections
 					}
 				}
 			}
 		}
 
-		// Check if the Tetromino has valid connection count and number of '#' characters
-		if connections < 6 || hashCount > 4 {
+		if ConnectionCount < 6 || HashCount > 4 { // Check if there are exactly 4 `#` characters and at least 6 connections.
 			return false
 		}
 	}
 
-	return true // All Tetrominos are valid
+	return true
 }
