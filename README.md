@@ -36,35 +36,45 @@ go run . <path-to-text-file>
 Suppose you have a file named validsample.txt with the following content:
 
 ```bash
-.##.
-.##.
-....
-....
-
-..##
-..##
-....
-....
-
-..##
-..##
-....
-....
-
-....
 ...#
-..##
 ...#
-
-....
-....
-##..
-##..
+...#
+...#
 
 ....
 ....
 ....
 ####
+
+.###
+...#
+....
+....
+
+....
+..##
+.##.
+....
+
+....
+.##.
+.##.
+....
+
+....
+....
+##..
+.##.
+
+##..
+.#..
+.#..
+....
+
+....
+###.
+.#..
+....
 ```
 
 * Run the program with:
@@ -76,11 +86,12 @@ go run . validsample.txt
 * If the program successfully solves the puzzle, it will print the smallest square grid containing the tetrominoes, using letters to represent each piece. For the above example, the output will be:
 
 ```bash
-[A A B B .]
-[A A B B .]
-[C C . . .]
-[C C . . .]
-[F F F F .]
+ABBBB.
+ACCCEE
+AFFCEE
+A.FFGG
+HHHDDG
+.HDD.G
 ```
 
 **Example2 :** Invalid Tetromino
@@ -95,26 +106,18 @@ ERROR
 
 ## File Format
 
-* The text file should contain tetrominoes in the following format:
+The text file should contain tetrominoes in the following format:
 
 1. Each tetromino is represented by a series of lines.
 2. Each line contains only # (part of the tetromino) or . (empty space).
 3. Tetrominoes are separated by blank lines.
 4. There must be at least one tetromino in the file.
 
-Example Tetromino File:
-
-```bash
-#...
-#...
-#...
-#...
-
-....
-....
-..##
-..##
-```
+## Rules of the Game
+1. Contains `#` and `.` only.
+2. Each `#` character must be connected to at least one other `#` character (horizontally or vertically; not diagonally).
+3. Tetromino must have exactly 4 `#` characters.
+4. Total number of connections between `#` characters must be at least 6.
 
 ## Contributing
 
