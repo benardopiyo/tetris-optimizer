@@ -1,40 +1,40 @@
 package tetrominosolver
 
-// Remove empty rows and columns from Tetromino shapes
+// Remove empty rows and columns from the Tetromino shapes; parts that do not contain '#' chars.
 func TrimUnusedLines(tetrominos [][]string) [][]string {
-	trimmedTetrominos := [][]string{}
+	trimmedTetrominos := [][]string{} // Hold the Tetrominos after removing unused lines.
 
-	// Remove empty rows from each Tetromino
+	// Trim unused lines horizontally; remove rows that do not contain a '#' character.
 	for _, tetromino := range tetrominos {
-		var trimmedTetromino []string
+		var trimmedTetromino []string // Temporarily holds the rows of the current Tetromino that contain at least one '#'.
 		for _, row := range tetromino {
-			containsBlock := false
+			rowHashCount := 0
 			for _, char := range row {
 				if char == '#' {
-					containsBlock = true
-					break
+					rowHashCount++
 				}
 			}
-			if containsBlock {
+
+			if rowHashCount > 0 {
 				trimmedTetromino = append(trimmedTetromino, row)
 			}
 		}
 		trimmedTetrominos = append(trimmedTetrominos, trimmedTetromino)
 	}
 
-	// Remove empty columns from each Tetromino
+	// Trim unused lines vertically; remove any columns that do not contain a '#' character.
 	for i := range trimmedTetrominos {
-		for col := len(trimmedTetrominos[i][0]) - 1; col >= 0; col-- {
-			containsBlock := false
-			for row := range trimmedTetrominos[i] {
-				if trimmedTetrominos[i][row][col] == '#' {
-					containsBlock = true
-					break
+		for j := len(trimmedTetrominos[i][0]) - 1; j >= 0; j-- {
+			columnHashCount := 0
+			for k := range trimmedTetrominos[i] {
+				if trimmedTetrominos[i][k][j] == '#' {
+					columnHashCount++
 				}
 			}
-			if !containsBlock {
-				for row := range trimmedTetrominos[i] {
-					trimmedTetrominos[i][row] = removeCharAt(trimmedTetrominos[i][row], col)
+			// If the current column does not contain any '#', remove it from all rows.
+			if columnHashCount == 0 {
+				for colIndex := range trimmedTetrominos[i] {
+					trimmedTetrominos[i][colIndex] = removeCharAtIndex(trimmedTetrominos[i][colIndex], j)
 				}
 			}
 		}
@@ -43,12 +43,14 @@ func TrimUnusedLines(tetrominos [][]string) [][]string {
 	return trimmedTetrominos
 }
 
-// Removes the character at a specified index in a string
-func removeCharAt(input string, index int) string {
+// Removes the character at a specific index in a string; remove a column from each row of the Tetromino.
+func removeCharAtIndex(input string, index int) string {
 	if index < 0 || index >= len(input) {
-		return input
+		return input // return the original string if index is out of bounds
+
 	}
 
 	runes := []rune(input)
-	return string(append(runes[:index], runes[index+1:]...))
+	runes = append(runes[:index], runes[index+1:]...)
+	return string(runes)
 }
