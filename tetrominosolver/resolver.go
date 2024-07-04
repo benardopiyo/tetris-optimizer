@@ -1,31 +1,139 @@
 package tetrominosolver
 
-// Pos represents the coordinates on the board
-type Pos struct {
-	X, Y int
+// Position of a Tetromino on the board with X and Y coordinates.
+type pos struct {
+	X int
+	Y int
 }
 
-// Save stores the state of the board and the positions of tetrominos
-type Save struct {
-	Board [][]string
-	Pos   []Pos
+// Holds the state of the board and the positions of the Tetrominos
+type save struct {
+	board [][]string
+	pos   [][]pos
 }
 
-// GetBoard creates a deep copy of the board
-func GetBoard(board [][]string) [][]string {
-	newBoard := make([][]string, len(board))
-	for i := range board {
-		newBoard[i] = append([]string(nil), board[i]...)
+// Creates a deep copy of the given board to ensure that modifications do not affect the original board.
+func createBoardCopy(board [][]string) [][]string {
+	newBoard := [][]string{}
+
+	for _, row := range board {
+		newRow := []string{}
+
+		newRow = append(newRow, row...)
+
+		newBoard = append(newBoard, newRow)
 	}
+
 	return newBoard
 }
 
-// CanPlaceTetromino checks if a tetromino can be placed at the specified position on the board
-func CanPlaceTetromino(tetromino []string, board [][]string, row, col int) bool {
-	for rowIdx, line := range tetromino {
-		for colIdx, char := range line {
+// Attempts to place all Tetrominos on the board and finds a valid configuration for the given Tetrominos.
+func Resolve(tetrominos [][]string, board [][]string) [][]string {
+	boardSaves := []save{} // Stack to keep track of different board states and Tetromino positions
+
+	for i := 0; i < len(tetrominos); i++ {
+		successfullyPlaced := false
+		isLastPossiblePos := true
+		duplicateFound := false
+		possibleToPlaceCurrentTetromino := false
+		Positions := [][]pos{}
+
+		// Try placing the Tetromino in every position on the board.
+		for rowIndex := 0; rowIndex < len(board[0]) && !successfullyPlaced; rowIndex++ {
+			for colIndex := 0; colIndex < len(board) && !successfullyPlaced; colIndex++ {
+				if CanPlaceTetromino(tetrominos[i], board, rowIndex, colIndex) && !successfullyPlaced {
+					possibleToPlaceCurrentTetromino = true
+					posistionTriedBefore := false // Flag to indicate if the position has been tried before
+
+					// Check for duplicate position by comparing with previous saves.
+					if len(boardSaves) > 0 && len(boardSaves) == i+1 {
+						for _, pos := range boardSaves[len(boardSaves)-1].pos[len(boardSaves[len(boardSaves)-1].pos)-1] {
+							if pos.X == rowIndex && pos.Y == colIndex {
+								posistionTriedBefore = true // The position is a duplicate
+								duplicateFound = true
+							}
+						}
+					}
+
+					if len(boardSaves) > 0 { // Retrieve the previous Tetromino positions if there are any saves.
+						Positions = boardSaves[len(boardSaves)-1].pos
+					}
+
+					if posistionTriedBefore { // Skip if the position is a duplicate.
+						continue
+					}
+
+					if !duplicateFound {
+						Positions = append(Positions, []pos{}) // Add the current position to the list of positions.
+					}
+
+					successfullyPlaced = true
+					localBoard := createBoardCopy(board)
+					Positions[len(Positions)-1] = append(Positions[len(Positions)-1], pos{rowIndex, colIndex})
+
+					if !duplicateFound {
+						isLastPossiblePos = false
+						boardSaves = append(boardSaves, save{localBoard, Positions}) // Save the current state of the board and Tetromino positions.
+					}
+
+					board = PlaceTetromino(tetrominos[i], board, rowIndex, colIndex, i)
+				}
+			}
+		}
+
+		if !possibleToPlaceCurrentTetromino {
+			isLastPossiblePos = false // No found for the current Tetromino, reset and try a new configuration.
+		}
+
+		if !successfullyPlaced {
+			i-- // Go back in next cycle to the current Tetromino
+
+			// If there are no more saves and we are out of space, reset the board.
+			if len(boardSaves) <= 1 {
+				i = -1 // Go back in the next cycle to the first Tetromino
+
+				boardSize := len(board) + 1
+				board = make([][]string, boardSize)
+				for i := range board {
+					board[i] = make([]string, boardSize)
+					for j := range board[i] {
+						board[i][j] = "."
+					}
+				}
+
+				boardSaves = []save{} // Clear the save stack as we are starting a new configuration.
+			}
+
+			// If there are previous saves, revert to the last saved state.
+			if len(boardSaves) > 1 {
+				i-- // Go back in the next cycle to the previous Tetromino
+
+				if isLastPossiblePos {
+					{
+						boardSaves = boardSaves[:len(boardSaves)-1]                  // Remove the last save
+						board = createBoardCopy(boardSaves[len(boardSaves)-1].board) // Restore the board from the last save
+					}
+				} else {
+					board = createBoardCopy(boardSaves[len(boardSaves)-1].board)
+				}
+			}
+		}
+	}
+
+	return board
+}
+
+// Checks if a Tetromino: can be placed on the board at a specific position;
+// Tetromino is out of bounds & if the position on the board is empty.
+// Returns true if a Tetromino can be placed at the specified position.
+func CanPlaceTetromino(tetromino []string, board [][]string, indexVertical int, indexHorizontal int) bool {
+	for indexVerticalTetromino, line := range tetromino {
+		for indexHorizontalTetromino, char := range line {
 			if char == '#' {
-				if row+rowIdx >= len(board) || col+colIdx >= len(board[0]) || board[row+rowIdx][col+colIdx] != "." {
+				if indexVertical+indexVerticalTetromino > len(board)-1 || indexHorizontal+indexHorizontalTetromino > len(board)-1 {
+					return false
+				}
+				if board[indexVertical+indexVerticalTetromino][indexHorizontal+indexHorizontalTetromino] != "." {
 					return false
 				}
 			}
@@ -34,74 +142,20 @@ func CanPlaceTetromino(tetromino []string, board [][]string, row, col int) bool 
 	return true
 }
 
-// PlaceTetromino places a tetromino on the board at the specified position
-func PlaceTetromino(tetromino []string, board [][]string, row, col, index int) [][]string {
-	for rowIdx, line := range tetromino {
-		for colIdx, char := range line {
+// Places a Tetromino on the board at a specific position and marks it with chars (A ... Z)
+func PlaceTetromino(tetromino []string, board [][]string, colIndex int, rowIndex int, tetrominoIndex int) [][]string {
+	for colIndexTetromino, row := range tetromino {
+		for rowIndexTetromino, char := range row {
 			if char == '#' {
-				board[row+rowIdx][col+colIdx] = string(rune('A' + index))
-			}
-		}
-	}
-	return board
-}
 
-// Backtrack resets the board to the previous state
-func Backtrack(boardSaves []Save, board [][]string) ([]Save, [][]string) {
-	if len(boardSaves) > 0 {
-		boardSaves = boardSaves[:len(boardSaves)-1]
-		if len(boardSaves) > 0 {
-			board = GetBoard(boardSaves[len(boardSaves)-1].Board)
-		} else {
-			board = CreateNewBoard(len(board) + 1)
-		}
-	}
-	return boardSaves, board
-}
-
-// CreateNewBoard initializes a new board with given size
-func CreateNewBoard(size int) [][]string {
-	board := make([][]string, size)
-	for i := range board {
-		board[i] = make([]string, size)
-		for j := range board[i] {
-			board[i][j] = "."
-		}
-	}
-	return board
-}
-
-// Resolve tries to place tetrominos on the board
-func Resolve(tetrominos [][]string, board [][]string) [][]string {
-	var boardSaves []Save
-
-	for i := 0; i < len(tetrominos); i++ {
-		placed := false
-
-		for row := 0; row < len(board) && !placed; row++ {
-			for col := 0; col < len(board[0]) && !placed; col++ {
-				if CanPlaceTetromino(tetrominos[i], board, row, col) {
-					localBoard := GetBoard(board)
-					board = PlaceTetromino(tetrominos[i], board, row, col, i)
-					var positions []Pos
-					if len(boardSaves) > 0 {
-						positions = append(positions, boardSaves[len(boardSaves)-1].Pos...)
-					}
-					positions = append(positions, Pos{row, col})
-					boardSaves = append(boardSaves, Save{localBoard, positions})
-					placed = true
+				startLetter := 'A' + tetrominoIndex // Adds the Tetromino index to get the next letter.
+				if startLetter > 'Z' {
+					board[colIndex+colIndexTetromino][rowIndex+rowIndexTetromino] = "X"
+				} else {
+					board[colIndex+colIndexTetromino][rowIndex+rowIndexTetromino] = string(rune(startLetter)) // Use 'A' to 'Z'.
 				}
 			}
 		}
-
-		if !placed {
-			i-- // Go back to previous tetromino
-			boardSaves, board = Backtrack(boardSaves, board)
-			if len(boardSaves) == 0 {
-				i = -1 // Restart placement process with a larger board
-			}
-		}
 	}
-
 	return board
 }
