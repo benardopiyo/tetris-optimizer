@@ -4,36 +4,39 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"time"
 
 	"tetris-optimizer/tetrominosolver"
 )
 
+// Read Tetromino shapes from the specified input file.
+// Validate the Tetromino shapes
+// Calculate the initial size of the board required to fit all Tetrominos.
+// Trim any unnecessary rows and columns from the Tetrominos.
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run . <input_file>")
+		fmt.Println("Usage: go run main.go <input_file>")
 		return
 	}
 
-	inputFile := os.Args[1]
+	firstArg := os.Args[1]
 
-	// Read Tetromino shapes from the specified input file
-	tetrominos, err := tetrominosolver.ReadInputFile(inputFile)
+	Tetrominos, err := tetrominosolver.ReadInputFile(firstArg)
 	if err != nil {
+		errMsg := err.Error()
+		fmt.Println(errMsg)
+		return
+	}
+
+	if !tetrominosolver.IsValid(Tetrominos) || len(Tetrominos) == 0 {
 		fmt.Println("ERROR")
 		return
 	}
 
-	// Validate the read Tetromino shapes
-	if !tetrominosolver.IsValid(tetrominos) || len(tetrominos) == 0 {
-		fmt.Println("ERROR")
-		return
-	}
+	boardSize := int(math.Ceil(math.Sqrt(float64(len(Tetrominos) * 4))))
 
-	// Calculate the initial board size based on the number of Tetrominos
-	boardSize := int(math.Ceil(math.Sqrt(float64(len(tetrominos) * 4))))
+	// Create a new board of the calculated size and initialize it with empty cells represented by ".".
 	board := make([][]string, boardSize)
-
-	// Initialize the board with empty cells represented by "."
 	for i := range board {
 		board[i] = make([]string, boardSize)
 		for j := range board[i] {
@@ -41,11 +44,15 @@ func main() {
 		}
 	}
 
-	trimmedTetrominos := tetrominosolver.TrimUnusedLines(tetrominos) // Trim unnecessary rows and columns
+	trimmedTetrominos := tetrominosolver.TrimUnusedLines(Tetrominos)
 
-	solvedBoard := tetrominosolver.Resolve(trimmedTetrominos, board) // Solve the board by placing tetrominos
+	resolvedBoard := tetrominosolver.Resolve(trimmedTetrominos, board)
+	fmt.Println("Time Taken: ", time.Since(time.Now()))
 
-	for _, row := range solvedBoard {
-		fmt.Println(row)
+	for _, row := range resolvedBoard {
+		for _, char := range row {
+			fmt.Print(string(char))
+		}
+		fmt.Println()
 	}
 }
